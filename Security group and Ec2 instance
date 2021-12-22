@@ -1,0 +1,62 @@
+Create Security grp and Ec2 Instance in Aws:
+
+provider "aws" {
+
+    region = "ap-south-1"
+    access_key = " "
+    secret_key = " "
+
+
+}
+ variable "region" {
+    type = string
+  default = "ap-south-1"
+}
+
+#Create Security Group
+
+resource "aws_security_group" "prj-sg1" {
+  name   = "prj-sg"
+  vpc_id = "vpc-0a494ee2550f704c4"
+}
+
+resource "aws_security_group_rule" "inbound_ssh" {
+  from_port         = 22
+  protocol          = "tcp"
+  security_group_id = "${aws_security_group.prj-sg1.id}"
+  to_port           = 22
+  type              = "ingress"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "inbound_http" {
+  from_port         = 80
+  protocol          = "tcp"
+  security_group_id = "${aws_security_group.prj-sg1.id}"
+  to_port           = 80
+  type              = "ingress"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "outbound_all" {
+  from_port         = 0
+  protocol          = "-1"
+  security_group_id = "${aws_security_group.prj-sg1.id}"
+  to_port           = 0
+  type              = "egress"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+#Create ec2 instance in pulic subnet
+
+resource "aws_instance" "private-server" {
+ ami           = "ami-08ee6644906ff4d6c"
+  key_name = "Mumbai123.kp"
+  instance_type = "t2.micro"
+  security_groups = [aws_security_group.prj-sg1.id]
+  subnet_id      = "subnet-0077b9b3821e8c048"
+  tags= {
+   Name = "EC2-with-VPC2"
+  }
+}
+
