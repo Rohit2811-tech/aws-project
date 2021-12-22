@@ -1,0 +1,66 @@
+##Create Launch Configuration
+
+resource "aws_launch_configuration" "prj-launch" {
+
+  image_id = "ami-08ee6644906ff4d6c"
+  instance_type = "t2.micro"
+  iam_instance_profile = "S3_full_access"
+  security_groups = [aws_security_group.prj-sg1.id]
+  key_name = "Mumbai123.kp"
+
+}
+## Creating ASG in Public Subnet:
+
+resource "aws_autoscaling_group" "prj-asg" {
+max_size = 5
+min_size = 2
+health_check_grace_period = 300
+health_check_type = "ELB"
+desired_capacity = 2
+force_delete = true
+launch_configuration = "${aws_launch_configuration.prj-launch.name}"
+vpc_zone_identifier = ["subnet-0e4ac9d73d8491492"] 
+
+tag {
+
+  key = "Name"
+  value = "Prj_ASG"
+  propagate_at_launch = true
+
+}
+
+lifecycle {create_before_destroy = true}
+
+}
+
+
+### Creating ELB in public subnet
+resource "aws_elb" "Prj-ELB" {
+
+  name= "Prj-ELB"
+  security_groups = ["${aws_security_group.prj-sg1.id}"]
+  subnets = ["subnet-0e4ac9d73d8491492"]
+  cross_zone_load_balancing = true
+  health_check {
+    healthy_threshold = 5
+    unhealthy_threshold = 2
+    timeout = 3
+    interval = 30
+    target = "HTTP:80/" 
+  }
+  listener {
+        lb_port= "80"
+        lb_protocol = "http"
+
+        instance_port = "80"
+        instance_protocol = "http"
+  }
+}
+
+resource "aws_autoscaling_attachment" "asg_attachment" {
+  autoscaling_group_name = aws_autoscaling_group.prj-asg.id
+  elb = aws_elb.Prj-ELB.id
+
+}
+
+
